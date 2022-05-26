@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"log"
-
-	"google.golang.org/grpc"
+	"time"
 
 	pb "github.com/yang201396/GoExamples/grpc/proto"
 )
@@ -15,7 +16,10 @@ const (
 )
 
 func main() {
-	conn, err := grpc.Dial(":"+PORT, grpc.WithInsecure())
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	conn, err := grpc.Dial(":"+PORT, opts...)
 	if err != nil {
 		log.Fatalf("grpc.Dial err: %v", err)
 	}
@@ -23,17 +27,17 @@ func main() {
 
 	client := pb.NewStreamServiceClient(conn)
 
-	err = printLists(client, &pb.StreamRequest{Pt: &pb.StreamPoint{Name: "gRPC Stream Client: List", Value: 2018}})
+	err = printLists(client, &pb.StreamRequest{Pt: &pb.StreamPoint{Name: "List", Value: 2018}})
 	if err != nil {
 		log.Fatalf("printLists.err: %v", err)
 	}
 
-	err = printRecord(client, &pb.StreamRequest{Pt: &pb.StreamPoint{Name: "gRPC Stream Client: Record", Value: 2018}})
+	err = printRecord(client, &pb.StreamRequest{Pt: &pb.StreamPoint{Name: "Record", Value: 2018}})
 	if err != nil {
 		log.Fatalf("printRecord.err: %v", err)
 	}
 
-	err = printRoute(client, &pb.StreamRequest{Pt: &pb.StreamPoint{Name: "gRPC Stream Client: Route", Value: 2018}})
+	err = printRoute(client, &pb.StreamRequest{Pt: &pb.StreamPoint{Name: "Route", Value: 2018}})
 	if err != nil {
 		log.Fatalf("printRoute.err: %v", err)
 	}
@@ -48,16 +52,15 @@ func printLists(client pb.StreamServiceClient, r *pb.StreamRequest) error {
 	for {
 		resp, err := stream.Recv()
 		if err == io.EOF {
-			break
+			log.Printf("List Recv err: %v, 通信结束", io.EOF)
+			return nil
 		}
 		if err != nil {
 			return err
 		}
 
-		log.Printf("resp: pj.name: %s, pt.value: %d", resp.Pt.Name, resp.Pt.Value)
+		log.Printf("List Recv(pj.name: %s, pt.value: %d)", resp.Pt.Name, resp.Pt.Value)
 	}
-
-	return nil
 }
 
 func printRecord(client pb.StreamServiceClient, r *pb.StreamRequest) error {
@@ -67,6 +70,7 @@ func printRecord(client pb.StreamServiceClient, r *pb.StreamRequest) error {
 	}
 
 	for n := 0; n < 6; n++ {
+		r.Pt.Value += int32(n)
 		err := stream.Send(r)
 		if err != nil {
 			return err
@@ -78,7 +82,7 @@ func printRecord(client pb.StreamServiceClient, r *pb.StreamRequest) error {
 		return err
 	}
 
-	log.Printf("resp: pj.name: %s, pt.value: %d", resp.Pt.Name, resp.Pt.Value)
+	log.Printf("Record CloseAndRecv(pj.name: %s, pt.value: %d)", resp.Pt.Name, resp.Pt.Value)
 
 	return nil
 }
@@ -90,23 +94,33 @@ func printRoute(client pb.StreamServiceClient, r *pb.StreamRequest) error {
 	}
 
 	for n := 0; n <= 6; n++ {
+		r.Pt.Value += int32(n)
 		err = stream.Send(r)
 		if err != nil {
+			log.Printf("Route Send err: %v", err.Error())
 			return err
 		}
+	}
 
+	for n := 0; n < 10; n++ {
 		resp, err := stream.Recv()
 		if err == io.EOF {
+			log.Printf("Route Recv err: %v, 通信结束", io.EOF)
 			break
 		}
 		if err != nil {
+			log.Printf("Route Recv err: %v", err.Error())
 			return err
 		}
-
-		log.Printf("resp: pj.name: %s, pt.value: %d", resp.Pt.Name, resp.Pt.Value)
+		log.Printf("Route: resp(pj.name: %s, pt.value: %d)", resp.Pt.Name, resp.Pt.Value)
 	}
 
-	stream.CloseSend()
+	time.Sleep(3 * time.Second)
+	err = stream.CloseSend()
+	if err != nil {
+		log.Printf("Route CloseSend err: %v", err.Error())
+		return err
+	}
 
 	return nil
 }
