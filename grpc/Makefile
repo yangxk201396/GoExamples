@@ -1,28 +1,41 @@
-# 编译google.api
-protoc -I . --go_out=plugins=grpc,Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf/protoc-gen-go/descriptor:. google/api/*.proto
 
-#编译hello_http.proto为hello_http.pb.proto
-protoc -I . --go_out=plugins=grpc,Mgoogle/api/annotations.proto=grpc-hello-world/proto/google/api:. ./hello.proto
+proto-all: proto-grpc proto-http proto-gateway proto-openapi proto-doc
 
-#编译hello_http.proto为hello_http.pb.gw.proto
-protoc --grpc-gateway_out=logtostderr=true:.. ./hello.proto
-
-# 编译生成 *pb.go (内带grpc编码)
 proto-grpc:
 	protoc \
-		--proto_path=. \
+		--proto_path ./proto \
 		--go_out=plugins=grpc:. \
 		./proto/*.proto
 
+proto-gateway:
+	protoc \
+		--proto_path ./proto \
+		--grpc-gateway_out . \
+        --grpc-gateway_opt logtostderr=true \
+        --grpc-gateway_opt generate_unbound_methods=true \
+        ./proto/*.proto
+
 proto-http:
 	protoc \
- 		--proto_path=. \
- 		--go_out=plugins=http:. \
+ 		--proto_path ./proto \
+ 		--gohttp_out . \
  		./proto/*.proto
 
-proto-all:
+proto-openapi:
 	protoc \
-		--proto_path=. \
-        --govalidators_out=. \
-        --go_out=plugins=grpc:.\
+		--proto_path ./proto \
+ 		--openapiv2_out ./proto \
+        --openapiv2_opt logtostderr=true \
         ./proto/*.proto
+
+proto-doc:
+	protoc \
+		--proto_path ./proto \
+		--doc_out ./proto \
+		--doc_opt html,index.html \
+		./proto/hello.proto
+	protoc \
+		--proto_path ./proto \
+		--doc_out ./proto \
+		--doc_opt markdown,hello.md \
+		./proto/hello.proto

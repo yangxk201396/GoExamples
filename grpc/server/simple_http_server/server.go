@@ -2,18 +2,18 @@ package main
 
 import (
 	"context"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"log"
 	"net/http"
 	"runtime/debug"
 	"strings"
 
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/yang201396/GoExamples/grpc/pkg/gtls"
 	pb "github.com/yang201396/GoExamples/grpc/proto"
-
-	"google.golang.org/grpc"
 )
 
 type SearchService struct{}
@@ -39,7 +39,7 @@ func main() {
 
 	opts := []grpc.ServerOption{
 		grpc.Creds(c),
-		grpc_middleware.WithUnaryServerChain(
+		middleware.WithUnaryServerChain(
 			RecoveryInterceptor,
 			LoggingInterceptor,
 		),
