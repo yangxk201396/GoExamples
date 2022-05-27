@@ -9,3 +9,6 @@
     go get -u github.com/google/pprof
     pprof -http=:8080 cpu.prof
     pprof -http=:8080 profile
+
+### 4. 参考
+    https://eddycjy.com/posts/go/tools/2019-07-12-go-tool-trace/
