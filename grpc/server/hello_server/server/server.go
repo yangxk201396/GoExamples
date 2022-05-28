@@ -63,6 +63,7 @@ func newServer() *http.Server {
 	mux.Handle("/", gwmux)
 	mux.Handle("/http/", httpmux)
 	mux.HandleFunc("/swagger/", serveSwaggerFile)
+	mux.Handle("/openapiv2/", openAPIServer(SwaggerDir))
 
 	return &http.Server{
 		Addr:      EndPoint,
@@ -119,7 +120,22 @@ func serveSwaggerFile(w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(r.URL.Path, "/swagger/")
 	p = path.Join(SwaggerDir, p)
 
-	log.Printf("Serving swagger-file: %s", p)
+	log.Printf("serveSwaggerFile path: %s", p)
 
 	http.ServeFile(w, r, p)
+}
+
+func openAPIServer(dir string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, ".swagger.json") {
+			log.Printf("Not Found: %s", r.URL.Path)
+			http.NotFound(w, r)
+			return
+		}
+
+		log.Printf("openAPIServer path: %s", r.URL.Path)
+		p := strings.TrimPrefix(r.URL.Path, "/openapiv2/")
+		p = path.Join(dir, p)
+		http.ServeFile(w, r, p)
+	}
 }

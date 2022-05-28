@@ -11,3 +11,4 @@
 
 ### 4. 访问swagger.json
     https://127.0.0.1:50052/swagger/hello.swagger.json
+    https://127.0.0.1:50052/openapiv2/hello.swagger.json
